@@ -12,6 +12,7 @@ export const INSTANCE_SYNC_TEXT_PROPS = [
   'text',
   ...TEXT_STYLE_FIELDS,
   'textDirection',
+  'textLanguage',
   'textAutoResize',
   'textTruncation',
   'maxLines',

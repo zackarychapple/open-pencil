@@ -1,10 +1,37 @@
 import { expect, test } from 'bun:test'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import { recordInstanceOverride } from '@open-pencil/scene-graph/instances'
 import { setInstanceOverride } from '@open-pencil/scene-graph/instances/overrides'
 import { pixelLength } from '@open-pencil/scene-graph/text'
 
 import { expectDefined } from '../helpers/assert'
+
+test('component text language follows its source unless the instance overrides it', () => {
+  const graph = new SceneGraph()
+  const page = graph.getPages()[0].id
+  const component = graph.createNode('COMPONENT', page)
+  const text = graph.createNode('TEXT', component.id, { text: 'Language', textLanguage: 'en' })
+  const instance = expectDefined(graph.createInstance(component.id, page))
+  const copy = graph.getChildren(instance.id)[0]
+
+  graph.updateNode(text.id, { textLanguage: 'ja' })
+  graph.syncInstances(component.id)
+  expect(copy.textLanguage).toBe('ja')
+
+  graph.updateNode(copy.id, { textLanguage: 'zh-Hant' })
+  recordInstanceOverride(graph, copy.id, ['textLanguage'])
+  graph.updateNode(text.id, { textLanguage: 'ko' })
+  graph.syncInstances(component.id)
+  expect(copy.textLanguage).toBe('zh-Hant')
+
+  const following = expectDefined(graph.createInstance(component.id, page))
+  const followingText = graph.getChildren(following.id)[0]
+  graph.updateNode(text.id, { textLanguage: null })
+  graph.syncInstances(component.id)
+  expect(followingText.textLanguage).toBeNull()
+  expect(copy.textLanguage).toBe('zh-Hant')
+})
 
 for (const protectedField of ['width', 'text'] as const) {
   test(`component synchronization preserves ${protectedField} without freezing other fields`, () => {
